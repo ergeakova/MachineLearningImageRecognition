@@ -13,7 +13,6 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
 
     @IBOutlet weak var imageView: UIImageView!
     @IBOutlet weak var lblResult: UILabel!
-    var chosenImage = CIImage()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -34,7 +33,10 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     }
     
     func recognizeImage(image: UIImage){
+        lblResult.text = "Finding.."
+        var chosenImage = CIImage()
         if let ciImage = CIImage(image: image){chosenImage = ciImage}
+
         if let model = try? VNCoreMLModel(for: MobileNetV2().model){
             let request = VNCoreMLRequest(model: model) { vnRequest, error in
                 if let results = vnRequest.results as? [VNClassificationObservation]{
@@ -42,10 +44,18 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
                         let topResult = results.first
                         
                         DispatchQueue.main.async {
-                            let confidenceLevel = (topResult?.confidence ?? 0)  * 100
-                            self.lblResult.text = "\(confidenceLevel) - \(topResult?.identifier)"
+                            let confidenceLevel = Int  (((topResult?.confidence ?? 0)  * 100) * 100) / 100
+                            self.lblResult.text = "\(confidenceLevel) - \(topResult!.identifier)"
                         }
                     }
+                }
+            }
+            let handler = VNImageRequestHandler(ciImage: chosenImage)
+            DispatchQueue.global(qos: .userInteractive).async {
+                do{
+                try handler.perform([request])
+                } catch {
+                    print("Error")
                 }
             }
         }
